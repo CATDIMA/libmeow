@@ -53,11 +53,6 @@ so it can be omitted with 50% chance
 
 All small letters have 10% chance to became capital letter
 */
-
-/*
-! Hardcoded array size !
-If you want to change meows array, don't forget to change tokenCount and maxLen
-*/
 static const MeowToken meows[] = 
 {
     meowL('m'), meowR('e', 2), meowRO('o', 2), meowR('w', 6), meowAO('!', '~', 0, 0, 0), meowENDL,
@@ -81,6 +76,13 @@ static char maybeCapital(char c, uint16_t (*randInt)(uint16_t, uint16_t))
     }
     else
         return c;
+}
+
+static void insertChar(char* str, char c)
+{
+    size_t len = strlen(str);
+    str[len] = c;
+    str[len + 1] = 0;
 }
 
 void generateMeowString(char* buffer, uint16_t (*randInt)(uint16_t, uint16_t))
@@ -121,15 +123,16 @@ void generateMeowString(char* buffer, uint16_t (*randInt)(uint16_t, uint16_t))
         {
             case LETTER:
                 if(meows[i].token.letter.l != 0)
-                    sprintf(buffer, "%s%c", buffer, maybeCapital(meows[i].token.letter.l, randInt));
+                    insertChar(buffer, maybeCapital(meows[i].token.letter.l, randInt));
             break;
             case REPEATABLE:
                 if(meows[i].token.repeatable.l != 0 && meows[i].token.repeatable.repeats != 0)
                     for(int8_t j = 0; j < randInt(1, meows[i].token.repeatable.repeats); j++)
-                        sprintf(buffer, "%s%c", buffer, maybeCapital(meows[i].token.repeatable.l, randInt));
+                        insertChar(buffer, maybeCapital(meows[i].token.repeatable.l, randInt));
             break;
             case ALTERNATIVE:
-                sprintf(buffer, "%s%c", buffer, maybeCapital(meows[i].token.alternative.alternatives[randInt(0, strlen(meows[i].token.alternative.alternatives) - 1)], randInt));
+                /*this line generates stringop-overread, ignore*/
+                insertChar(buffer, maybeCapital(meows[i].token.alternative.alternatives[randInt(0, strlen(meows[i].token.alternative.alternatives) - 1)], randInt));
             break;
             default:
             break;
@@ -137,7 +140,7 @@ void generateMeowString(char* buffer, uint16_t (*randInt)(uint16_t, uint16_t))
     }
 
     if(randInt(1, 10) == 1)
-        sprintf(buffer, "%s%c", buffer, '\n');
+        insertChar(buffer, '\n');
     else
-        sprintf(buffer, "%s%c", buffer, ' ');
+        insertChar(buffer, ' ');
 }
