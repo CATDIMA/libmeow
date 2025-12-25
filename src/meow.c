@@ -8,6 +8,7 @@
 #define meowRO(a, n)            (MeowToken){.type = REPEATABLE, .token.repeatable.l = (a), .token.repeatable.repeats = (n), .optional = true}
 #define meowAO(a, b, c, d, e)   (MeowToken){.type = ALTERNATIVE, .token.alternative.alternatives = {(a), (b), (c), (d), (e), 0}, .optional = true}
 #define meowENDL                (MeowToken){.type = ENDL}
+#define meowEND                 (MeowToken){.type = END}
 
 typedef enum
 {
@@ -15,6 +16,7 @@ typedef enum
     REPEATABLE,
     ALTERNATIVE,
     ENDL,
+    END
 } TokenType;
 
 typedef struct
@@ -56,17 +58,16 @@ All small letters have 10% chance to became capital letter
 ! Hardcoded array size !
 If you want to change meows array, don't forget to change tokenCount and maxLen
 */
-#define maxLen 6
-#define tokens 7
-static const MeowToken meows[tokens][maxLen] = 
+static const MeowToken meows[] = 
 {
-    {meowL('m'), meowR('e', 2), meowRO('o', 2), meowR('w', 6), meowAO('!', '~', 0, 0, 0), meowENDL},
-    {meowL('m'), meowR('r', 10), meowA('a', 'o', 'e', 0, 0), meowR('w', 2), meowENDL},
-    {meowL('m'), meowR('r', 10), meowENDL},
-    {meowL('p'), meowLO('u'), meowR('r', 10), meowENDL},
-    {meowL('m'), meowL('o'), meowR('w', 5), meowENDL},
-    {meowLO('>'), meowL(':'), meowL('3'), meowENDL},
-    {meowL('>'), meowR('/', 5), meowL('<'), meowENDL}
+    meowL('m'), meowR('e', 2), meowRO('o', 2), meowR('w', 6), meowAO('!', '~', 0, 0, 0), meowENDL,
+    meowL('m'), meowR('r', 10), meowA('a', 'o', 'e', 0, 0), meowR('w', 2), meowENDL,
+    meowL('m'), meowR('r', 10), meowENDL,
+    meowL('p'), meowLO('u'), meowR('r', 10), meowENDL,
+    meowL('m'), meowL('o'), meowR('w', 5), meowENDL,
+    meowLO('>'), meowL(':'), meowL('3'), meowENDL,
+    meowL('>'), meowR('/', 5), meowL('<'), meowENDL,
+    meowEND
 };
 
 static char maybeCapital(char c, uint16_t (*randInt)(uint16_t, uint16_t))
@@ -84,32 +85,51 @@ static char maybeCapital(char c, uint16_t (*randInt)(uint16_t, uint16_t))
 
 void generateMeowString(char* buffer, uint16_t (*randInt)(uint16_t, uint16_t))
 {
-    uint8_t idx = randInt(0, tokens - 1);
+    uint8_t tokens = 0;
+    int8_t i = 0;
 
-    for(int8_t i = 0; meows[idx][i].type != ENDL; i++)
+    while(meows[i].type != END)
     {
-        if(i > maxLen)
-            break;
+        if(meows[i].type == ENDL) ++tokens;
+        ++i;
+    }
 
-        if(meows[idx][i].optional)
+    uint8_t row = randInt(0, tokens - 1);
+    uint8_t startIdx = 0;
+    if(row != 0)
+    {
+        /*reuse tokens as counter*/
+        tokens = 0;
+        while(tokens != row)
+        {
+            if(meows[startIdx].type == ENDL)
+                ++tokens;
+
+            ++startIdx;
+        }
+    }
+
+    for(i = startIdx; meows[i].type != ENDL; i++)
+    {
+        if(meows[i].optional)
         {
             if(randInt(1, 10) <= 5)
                 continue;
         }
 
-        switch(meows[idx][i].type)
+        switch(meows[i].type)
         {
             case LETTER:
-                if(meows[idx][i].token.letter.l != 0)
-                    sprintf(buffer, "%s%c", buffer, maybeCapital(meows[idx][i].token.letter.l, randInt));
+                if(meows[i].token.letter.l != 0)
+                    sprintf(buffer, "%s%c", buffer, maybeCapital(meows[i].token.letter.l, randInt));
             break;
             case REPEATABLE:
-                if(meows[idx][i].token.repeatable.l != 0 && meows[idx][i].token.repeatable.repeats != 0)
-                    for(int8_t j = 0; j < randInt(1, meows[idx][i].token.repeatable.repeats); j++)
-                        sprintf(buffer, "%s%c", buffer, maybeCapital(meows[idx][i].token.repeatable.l, randInt));
+                if(meows[i].token.repeatable.l != 0 && meows[i].token.repeatable.repeats != 0)
+                    for(int8_t j = 0; j < randInt(1, meows[i].token.repeatable.repeats); j++)
+                        sprintf(buffer, "%s%c", buffer, maybeCapital(meows[i].token.repeatable.l, randInt));
             break;
             case ALTERNATIVE:
-                sprintf(buffer, "%s%c", buffer, maybeCapital(meows[idx][i].token.alternative.alternatives[randInt(0, strlen(meows[idx][i].token.alternative.alternatives) - 1)], randInt));
+                sprintf(buffer, "%s%c", buffer, maybeCapital(meows[i].token.alternative.alternatives[randInt(0, strlen(meows[i].token.alternative.alternatives) - 1)], randInt));
             break;
             default:
             break;
